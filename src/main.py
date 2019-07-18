@@ -145,11 +145,13 @@ if __name__ == '__main__':
 
         input()
 
-        with tarfile.open(tar_filepath, 'w:gz') as tar:
+        os.chdir(TEMPORARY_FOLDER_PATH)
+        with tarfile.open('../' + tar_filepath, 'w:gz') as tar:
             for dirn in hash_table:
-                tar.add(TEMPORARY_FOLDER_PATH + '/' + hash_table[dirn])
+                tar.add(hash_table[dirn])
 
         printf('Finished. Total warnings = ' + str(warning_count), upack_fpath)
         input()
+        os.chdir('../')
 
     shutil.rmtree(TEMPORARY_FOLDER_PATH)
