@@ -2,12 +2,8 @@
 # -*- coding:UTF-8 -*-
 # Copyright (c) 2019 Shirao Shotaro.
 # This code is published under MIT-LISENCE.
-import sys
-import tarfile
-import os
-import shutil
-import hashlib
-import time
+import sys, argparse, os
+import tarfile, shutil, hashlib, time
 import yaml
 from collections import OrderedDict
 
@@ -16,27 +12,13 @@ TEMPORARY_FOLDER_PATH = 'tmp'
 def iterateDict(ymlobj: dict, hash_table: dict, upack_fpath: str, replaced_count: int, warning_count: int):
     for key in ymlobj:
         replaced_count, warning_count = replaceGUID(ymlobj, key, hash_table, upack_fpath, replaced_count, warning_count)
-        warning_count = isUnicodeStr(ymlobj[key], upack_fpath, warning_count)
     return replaced_count, warning_count
 
 
 def iterateList(ymlobj: list, hash_table: dict, upack_fpath: str, replaced_count: int, warning_count: int):
     for key in range(0, len(ymlobj)):
         replaced_count, warning_count = replaceGUID(ymlobj, key, hash_table, upack_fpath, replaced_count, warning_count)
-        warning_count = isUnicodeStr(ymlobj[key], upack_fpath, warning_count)
     return replaced_count, warning_count
-
-
-def isUnicodeStr(value, upack_fpath: str, warning_count: int):
-    if type(value) is str:
-        try:
-            value.encode().decode('ascii')
-        except UnicodeDecodeError:
-            printf('Unicode string has included. string = ' + value, upack_fpath)
-            warning_count += 1
-
-    return warning_count
-
 
 def replaceGUID(ymlobj, key, hash_table: dict, upack_fpath: str, replaced_count: int, warning_count: int):
     if key == 'guid':
@@ -60,22 +42,22 @@ def replaceGUID(ymlobj, key, hash_table: dict, upack_fpath: str, replaced_count:
 
 
 def printf(string: str, filepath: str):
-    print(os.path.basename(filepath) + ' > ' + string)
-
+    print(os.path.basename(filepath) + ' > ' + string, file=sys.stderr)
 
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        print('No file input.')
-        print('Usage: Unitypackage-GUID-Remapper.exe [unitypackage filepath] ...')
-        print('You can drag input unitypackage(s) and drop to this exe file on Windows GUI.')
-        exit(-1)
+    parser = argparse.ArgumentParser(description="Remap assets GUID in a unitypackage with holding dependency.")
+    parser.add_argument('unitypackage',
+                        nargs='+',
+                        type=str)
+    args = parser.parse_args()
 
     warning_count = 0
 
     if os.path.exists(TEMPORARY_FOLDER_PATH):
         shutil.rmtree(TEMPORARY_FOLDER_PATH)
 
-    for upack_fpath in sys.argv[1:]:
+    for upack_fpath in args.unitypackage:
+        upack_fpath = os.path.realpath(upack_fpath)
         printf('start.', upack_fpath)
 
         # temporary folder
@@ -91,7 +73,6 @@ if __name__ == '__main__':
         # フォルダ名からhashテーブルを作成
         folders = os.listdir(TEMPORARY_FOLDER_PATH)
         hash_table = {}
-
         while True:
             for dirn in folders:
                 if not os.path.isdir(dirn):
@@ -100,7 +81,6 @@ if __name__ == '__main__':
                 else:
                     printf('!!! INVALID UNITYPACKAGE ERROR !!!', upack_fpath)
                     raise RuntimeError('Invalid unitypackage.')
-
             if (len(hash_table) * 2) == len(set(list(hash_table.values()) + list(hash_table.keys()))):
                 break
             else:
@@ -133,7 +113,6 @@ if __name__ == '__main__':
             printf('replaced = ' + str(okcount) + ' / warning count = ' + str(wcount) +
                    ' (warning total = ' + str(warning_count + wcount) + ')', upack_fpath)
             warning_count += wcount
-            
 
         # ファイル名の作成
         folder_path, file_name = os.path.split(upack_fpath)
@@ -143,9 +122,11 @@ if __name__ == '__main__':
         printf('packaging to = ' + tar_filepath, upack_fpath)
 
         os.chdir(TEMPORARY_FOLDER_PATH)
-        with tarfile.open('../' + tar_filepath, 'w:gz') as tar:
+        with tarfile.open(folder_path + '/' + tar_filepath, 'w:gz') as tar:
             for dirn in hash_table:
                 tar.add(hash_table[dirn])
+
+        shutil.move(folder_path + '/' + tar_filepath, folder_path + '/' + file_name + '_REAMAPPED' + file_ext)
 
         printf('Finished. Total warnings = ' + str(warning_count), upack_fpath)
         os.chdir('../')
