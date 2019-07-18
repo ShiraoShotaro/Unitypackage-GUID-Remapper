@@ -86,7 +86,7 @@ if __name__ == '__main__':
             printf(str(len(tar.getnames())) + ' file(s) are included.', upack_fpath)
 
             # extract tar
-            tar.extractall('tmp/')
+            tar.extractall(TEMPORARY_FOLDER_PATH)
 
         # フォルダ名からhashテーブルを作成
         folders = os.listdir(TEMPORARY_FOLDER_PATH)
@@ -126,7 +126,6 @@ if __name__ == '__main__':
             okcount, wcount = iterateDict(meta, hash_table, upack_fpath, 0, 0)
 
             # yamlを置きなおす
-            """
             with open(TEMPORARY_FOLDER_PATH + '/' + hash_table[dirn] + '/asset.meta', 'w') as yaml_file:
                 # yaml_file.write(yaml.dump(meta, default_flow_style=False))
                 yaml_file.write(yaml.dump(meta))
@@ -134,16 +133,14 @@ if __name__ == '__main__':
             printf('replaced = ' + str(okcount) + ' / warning count = ' + str(wcount) +
                    ' (warning total = ' + str(warning_count + wcount) + ')', upack_fpath)
             warning_count += wcount
-            """
+            
 
         # ファイル名の作成
         folder_path, file_name = os.path.split(upack_fpath)
         file_name, file_ext = os.path.splitext(file_name)
 
-        tar_filepath = folder_path + '/' + file_name + '_remapped' + file_ext
+        tar_filepath = 'archtemp.tar'
         printf('packaging to = ' + tar_filepath, upack_fpath)
-
-        input()
 
         os.chdir(TEMPORARY_FOLDER_PATH)
         with tarfile.open('../' + tar_filepath, 'w:gz') as tar:
@@ -151,7 +148,6 @@ if __name__ == '__main__':
                 tar.add(hash_table[dirn])
 
         printf('Finished. Total warnings = ' + str(warning_count), upack_fpath)
-        input()
         os.chdir('../')
 
     shutil.rmtree(TEMPORARY_FOLDER_PATH)
