@@ -128,7 +128,7 @@ if __name__ == '__main__':
 
         shutil.move(folder_path + '/' + tar_filepath, folder_path + '/' + file_name + '_REAMAPPED' + file_ext)
 
-        printf('Finished. Total warnings = ' + str(warning_count), upack_fpath)
         os.chdir('../')
+        printf('Finished. Total warnings = ' + str(warning_count), upack_fpath)
 
     shutil.rmtree(TEMPORARY_FOLDER_PATH)
