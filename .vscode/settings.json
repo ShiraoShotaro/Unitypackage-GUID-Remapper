@@ -1,0 +1,16 @@
+{
+    "python.linting.flake8Enabled": true,
+    "python.linting.mypyEnabled": true,
+    "python.linting.flake8Args": [
+        "--max-line-length",
+        "120"
+    ],
+    "python.formatting.autopep8Args": [
+        "--ignore",
+        "E70",
+        "--max-line-length",
+        "120",
+    ],
+    "editor.formatOnSave": true,
+    "python.jediEnabled": false
+}
