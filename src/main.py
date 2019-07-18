@@ -13,22 +13,6 @@ from collections import OrderedDict
 
 TEMPORARY_FOLDER_PATH = 'tmp'
 
-_mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
-
-"""
-def dict_representer(dumper, data):
-    return dumper.represent_dict(data.iteritems())
-"""
-
-
-def dict_constructor(loader, node):
-    return OrderedDict(loader.construct_pairs(node))
-
-
-# yaml.add_representer(OrderedDict, dict_representer)
-yaml.add_constructor(_mapping_tag, dict_constructor)
-
-
 def iterateDict(ymlobj: dict, hash_table: dict, upack_fpath: str, replaced_count: int, warning_count: int):
     for key in ymlobj:
         replaced_count, warning_count = replaceGUID(ymlobj, key, hash_table, upack_fpath, replaced_count, warning_count)
@@ -142,6 +126,7 @@ if __name__ == '__main__':
             okcount, wcount = iterateDict(meta, hash_table, upack_fpath, 0, 0)
 
             # yamlを置きなおす
+            """
             with open(TEMPORARY_FOLDER_PATH + '/' + hash_table[dirn] + '/asset.meta', 'w') as yaml_file:
                 # yaml_file.write(yaml.dump(meta, default_flow_style=False))
                 yaml_file.write(yaml.dump(meta))
@@ -149,6 +134,7 @@ if __name__ == '__main__':
             printf('replaced = ' + str(okcount) + ' / warning count = ' + str(wcount) +
                    ' (warning total = ' + str(warning_count + wcount) + ')', upack_fpath)
             warning_count += wcount
+            """
 
         # ファイル名の作成
         folder_path, file_name = os.path.split(upack_fpath)
@@ -157,8 +143,11 @@ if __name__ == '__main__':
         tar_filepath = folder_path + '/' + file_name + '_remapped' + file_ext
         printf('packaging to = ' + tar_filepath, upack_fpath)
 
+        input()
+
         with tarfile.open(tar_filepath, 'w:gz') as tar:
-            tar.add(TEMPORARY_FOLDER_PATH)
+            for dirn in hash_table:
+                tar.add(TEMPORARY_FOLDER_PATH + '/' + hash_table[dirn])
 
         printf('Finished. Total warnings = ' + str(warning_count), upack_fpath)
         input()
