@@ -59,13 +59,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     warning_count = 0
+    base_dir = os.getcwd()
 
     for upack_fpath in args.unitypackage:
-
+        upack_fpath = os.path.realpath(upack_fpath)
         # temporary folder
         with tempfile.TemporaryDirectory() as tmpdir:
             os.chdir(tmpdir)
-            upack_fpath = os.path.realpath(upack_fpath)
             printf('start.', upack_fpath)
 
             # open tar
@@ -73,14 +73,15 @@ if __name__ == '__main__':
                 printf(str(len(tar.getnames())) + ' file(s) are included.', upack_fpath)
 
                 # extract tar
-                tar.extractall(tmpdir)
+                tar.extractall()
 
             # フォルダ名からhashテーブルを作成
-            folders = os.listdir(tmpdir)
+            folders = os.listdir()
             hash_table = {}
+
             while True:
                 for dirn in folders:
-                    if not os.path.isdir(dirn):
+                    if os.path.isdir(dirn):
                         hash_table[dirn] = hashlib.md5((dirn + str(time.time())).encode()).hexdigest()
                         printf('entity = ' + dirn + ' => ' + hash_table[dirn], upack_fpath)
                     else:
@@ -132,5 +133,5 @@ if __name__ == '__main__':
 
             shutil.move(folder_path + '/' + tar_filepath, folder_path + '/' + file_name + '_REAMAPPED' + file_ext)
 
-            os.chdir(tempfile.gettempdir())
+            os.chdir(base_dir)
             printf('Finished. Total warnings = ' + str(warning_count), upack_fpath)
