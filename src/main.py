@@ -9,42 +9,24 @@ import tarfile
 import shutil
 import hashlib
 import time
-import yaml
 import tempfile
-from collections import OrderedDict
+from pathlib import Path
 
 
-def iterateDict(ymlobj: dict, hash_table: dict, upack_fpath: str, replaced_count: int, warning_count: int):
-    for key in ymlobj:
-        replaced_count, warning_count = replaceGUID(ymlobj, key, hash_table, upack_fpath, replaced_count, warning_count)
-    return replaced_count, warning_count
-
-
-def iterateList(ymlobj: list, hash_table: dict, upack_fpath: str, replaced_count: int, warning_count: int):
-    for key in range(0, len(ymlobj)):
-        replaced_count, warning_count = replaceGUID(ymlobj, key, hash_table, upack_fpath, replaced_count, warning_count)
-    return replaced_count, warning_count
-
-
-def replaceGUID(ymlobj, key, hash_table: dict, upack_fpath: str, replaced_count: int, warning_count: int):
-    if key == 'guid':
-        if ymlobj[key] in hash_table:
-            ymlobj[key] = hash_table[ymlobj[key]]
-            replaced_count += 1
-        else:
-            printf('This object is depending on MISSING assets. GUID = ' + ymlobj[key], upack_fpath)
-            warning_count += 1
-
-    elif isinstance(ymlobj[key], dict):
-        replaced_count, warning_count = iterateDict(
-            ymlobj[key], hash_table, upack_fpath, replaced_count, warning_count)
-        pass
-    elif isinstance(ymlobj[key], tuple) or isinstance(ymlobj[key], list):
-        replaced_count, warning_count = iterateList(
-            ymlobj[key], hash_table, upack_fpath, replaced_count, warning_count)
-        pass
-
-    return replaced_count, warning_count
+def replaceGUID(infile_path: str, rewrite_table: dict):
+    import copy
+    infile = None
+    try:
+        with open(infile_path, 'rt') as f:
+            infile = f.read()
+        outfile = copy.deepcopy(infile)
+        for from_guid in rewrite_table.keys():
+            outfile = outfile.replace(from_guid, rewrite_table[from_guid])
+        if(infile is not outfile):
+            with open(infile_path, 'wt') as f:
+                f.write(outfile)
+    except UnicodeDecodeError:
+        return
 
 
 def printf(string: str, filepath: str):
@@ -62,7 +44,7 @@ if __name__ == '__main__':
     base_dir = os.getcwd()
 
     for upack_fpath in args.unitypackage:
-        upack_fpath = os.path.realpath(upack_fpath)
+        upack_fpath = Path(upack_fpath).resolve()
         # temporary folder
         with tempfile.TemporaryDirectory() as tmpdir:
             os.chdir(tmpdir)
@@ -101,24 +83,10 @@ if __name__ == '__main__':
             printf('Renamed all directories.', upack_fpath)
 
             # メタファイルから該当するGUIDを探していく
-            for dirn in hash_table:
-                with open(tmpdir + '/' + hash_table[dirn] + '/pathname', 'r') as pn:
-                    printf('check meta = ' + pn.read() + ' (' + hash_table[dirn] + ')', upack_fpath)
-
-                meta = None
-                with open(tmpdir + '/' + hash_table[dirn] + '/asset.meta', 'r') as yaml_file:
-                    meta = yaml.safe_load(yaml_file)
-
-                okcount, wcount = iterateDict(meta, hash_table, upack_fpath, 0, 0)
-
-                # yamlを置きなおす
-                with open(tmpdir + '/' + hash_table[dirn] + '/asset.meta', 'w') as yaml_file:
-                    # yaml_file.write(yaml.dump(meta, default_flow_style=False))
-                    yaml_file.write(yaml.dump(meta))
-
-                printf('replaced = ' + str(okcount) + ' / warning count = ' + str(wcount) +
-                       ' (warning total = ' + str(warning_count + wcount) + ')', upack_fpath)
-                warning_count += wcount
+            for target in Path('.').glob('**/asset'):
+                replaceGUID(target, hash_table)
+            for target in Path('.').glob('**/asset.meta'):
+                replaceGUID(target, hash_table)
 
             # ファイル名の作成
             folder_path, file_name = os.path.split(upack_fpath)
